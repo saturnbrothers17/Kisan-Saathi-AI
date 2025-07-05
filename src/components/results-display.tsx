@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import type { PredictDiseaseOutput } from "@/ai/flows/disease-prediction";
 import type { TreatmentSuggestionsOutput } from "@/ai/flows/treatment-suggestions";
 import { askKisan } from "@/ai/flows/kisan-assistant";
@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
-import { AlertTriangle, Bot, FlaskConical, Loader2, Send, Stethoscope, TestTube2, Trees, User } from "lucide-react";
+import { AlertTriangle, Bot, FlaskConical, Loader2, Mic, Send, Stethoscope, TestTube2, Trees, User } from "lucide-react";
 import { Textarea } from "./ui/textarea";
 import { ScrollArea } from "./ui/scroll-area";
 import { Avatar, AvatarFallback } from "./ui/avatar";
@@ -20,11 +20,80 @@ interface ResultsDisplayProps {
   imageDataUri: string;
 }
 
+// Type definition for browser SpeechRecognition API
+declare global {
+  interface Window {
+    SpeechRecognition: typeof SpeechRecognition;
+    webkitSpeechRecognition: typeof SpeechRecognition;
+  }
+}
+
 export function ResultsDisplay({ prediction, treatment, imageDataUri }: ResultsDisplayProps) {
   const [messages, setMessages] = useState<{ author: 'user' | 'kisan'; content: string }[]>([]);
   const [userQuestion, setUserQuestion] = useState('');
   const [isAssistantLoading, setIsAssistantLoading] = useState(false);
   const { toast } = useToast();
+
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const [speechSupported, setSpeechSupported] = useState(false);
+
+  useEffect(() => {
+    const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognitionAPI) {
+      setSpeechSupported(true);
+      const recognition = new SpeechRecognitionAPI();
+      recognition.continuous = false;
+      recognition.lang = 'hi-IN';
+      recognition.interimResults = false;
+
+      recognition.onstart = () => {
+        setIsListening(true);
+      };
+      
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        setUserQuestion(prev => (prev ? prev + ' ' : '') + transcript);
+      };
+
+      recognition.onerror = (event) => {
+        console.error('Speech recognition error', event.error);
+        setIsListening(false);
+        toast({
+            variant: 'destructive',
+            title: 'Voice Error',
+            description: 'Could not recognize speech, please try again.',
+        });
+      };
+      
+      recognitionRef.current = recognition;
+    }
+
+    return () => {
+        recognitionRef.current?.abort();
+    }
+  }, [toast]);
+
+
+  const handleToggleListening = () => {
+    if (!speechSupported || !recognitionRef.current) {
+        toast({
+            variant: 'destructive',
+            title: 'Not Supported',
+            description: 'Voice input is not supported on this browser.',
+        });
+        return;
+    }
+    if (isListening) {
+        recognitionRef.current.stop();
+    } else {
+        recognitionRef.current.start();
+    }
+  };
 
   const handleAskKisan = async () => {
     if (!userQuestion.trim()) return;
@@ -172,7 +241,7 @@ export function ResultsDisplay({ prediction, treatment, imageDataUri }: ResultsD
             <CardFooter className="p-4 pt-0">
                <div className="flex w-full items-center gap-2">
                   <Textarea
-                    placeholder="Type your question here..."
+                    placeholder="Type your question, or use the mic to speak in Hindi..."
                     value={userQuestion}
                     onChange={(e) => setUserQuestion(e.target.value)}
                     onKeyDown={(e) => {
@@ -185,6 +254,16 @@ export function ResultsDisplay({ prediction, treatment, imageDataUri }: ResultsD
                     className="min-h-[40px] resize-none"
                     disabled={isAssistantLoading}
                   />
+                  {speechSupported && (
+                    <Button onClick={handleToggleListening} disabled={isAssistantLoading} size="icon" variant="outline">
+                        {isListening ? (
+                            <Mic className="h-4 w-4 text-destructive animate-pulse" />
+                        ) : (
+                            <Mic className="h-4 w-4" />
+                        )}
+                        <span className="sr-only">{isListening ? 'Stop speaking' : 'Start speaking'}</span>
+                    </Button>
+                  )}
                   <Button onClick={handleAskKisan} disabled={!userQuestion.trim() || isAssistantLoading} size="icon">
                     <Send className="h-4 w-4" />
                     <span className="sr-only">Send</span>
