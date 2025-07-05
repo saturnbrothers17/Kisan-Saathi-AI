@@ -113,8 +113,8 @@ export default function Home() {
 
         {isLoading && <LoadingSkeleton />}
 
-        {!isLoading && prediction && treatment && (
-          <ResultsDisplay prediction={prediction} treatment={treatment} />
+        {!isLoading && prediction && treatment && imageDataUri && (
+          <ResultsDisplay prediction={prediction} treatment={treatment} imageDataUri={imageDataUri} />
         )}
       </div>
     </main>

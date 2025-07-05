@@ -1,18 +1,63 @@
+import { useState } from "react";
 import type { PredictDiseaseOutput } from "@/ai/flows/disease-prediction";
 import type { TreatmentSuggestionsOutput } from "@/ai/flows/treatment-suggestions";
+import { askKisan } from "@/ai/flows/kisan-assistant";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
-import { AlertTriangle, FlaskConical, Stethoscope, TestTube2, Trees } from "lucide-react";
+import { AlertTriangle, Bot, FlaskConical, Loader2, Send, Stethoscope, TestTube2, Trees, User } from "lucide-react";
+import { Textarea } from "./ui/textarea";
+import { ScrollArea } from "./ui/scroll-area";
+import { Avatar, AvatarFallback } from "./ui/avatar";
+import { Button } from "./ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 interface ResultsDisplayProps {
   prediction: PredictDiseaseOutput;
   treatment: TreatmentSuggestionsOutput;
+  imageDataUri: string;
 }
 
-export function ResultsDisplay({ prediction, treatment }: ResultsDisplayProps) {
+export function ResultsDisplay({ prediction, treatment, imageDataUri }: ResultsDisplayProps) {
+  const [messages, setMessages] = useState<{ author: 'user' | 'kisan'; content: string }[]>([]);
+  const [userQuestion, setUserQuestion] = useState('');
+  const [isAssistantLoading, setIsAssistantLoading] = useState(false);
+  const { toast } = useToast();
+
+  const handleAskKisan = async () => {
+    if (!userQuestion.trim()) return;
+
+    const newMessages = [...messages, { author: 'user' as const, content: userQuestion }];
+    setMessages(newMessages);
+    const questionToAsk = userQuestion;
+    setUserQuestion('');
+    setIsAssistantLoading(true);
+
+    try {
+      const result = await askKisan({
+        question: questionToAsk,
+        diseaseName: prediction.commonName,
+        confidencePercentage: prediction.confidencePercentage,
+        treatment: treatment,
+        photoDataUri: imageDataUri,
+      });
+      setMessages([...newMessages, { author: 'kisan' as const, content: result.answer }]);
+    } catch (e) {
+      console.error(e);
+      toast({
+        variant: 'destructive',
+        title: "Assistant Error",
+        description: "Sorry, I couldn't get a response. Please try again.",
+      });
+      setMessages(messages); // Revert messages if the call fails
+    } finally {
+      setIsAssistantLoading(false);
+    }
+  };
+
+
   return (
     <Card className="shadow-lg animate-in fade-in duration-500">
       <CardHeader>
@@ -71,6 +116,83 @@ export function ResultsDisplay({ prediction, treatment }: ResultsDisplayProps) {
             </AlertDescription>
           </Alert>
         )}
+
+        <Separator className="my-6" />
+
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <Avatar>
+              <AvatarFallback><Bot className="h-5 w-5" /></AvatarFallback>
+            </Avatar>
+            <div>
+              <h3 className="text-lg font-semibold font-headline">Ask Kisan Assistant</h3>
+              <p className="text-sm text-muted-foreground">Ask a follow-up question about this diagnosis.</p>
+            </div>
+          </div>
+
+          <Card className="bg-muted/50">
+            <CardContent className="p-4">
+              <ScrollArea className="h-48 w-full pr-4">
+                <div className="space-y-4">
+                  {messages.map((message, index) => (
+                    <div key={index} className={`flex items-start gap-3 ${message.author === 'user' ? 'justify-end' : ''}`}>
+                      {message.author === 'kisan' && (
+                        <Avatar className="h-8 w-8">
+                           <AvatarFallback><Bot className="h-5 w-5"/></AvatarFallback>
+                        </Avatar>
+                      )}
+                      <div className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${
+                        message.author === 'user'
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-background'
+                      }`}>
+                        <p className="whitespace-pre-wrap">{message.content}</p>
+                      </div>
+                       {message.author === 'user' && (
+                        <Avatar className="h-8 w-8">
+                           <AvatarFallback><User className="h-5 w-5"/></AvatarFallback>
+                        </Avatar>
+                      )}
+                    </div>
+                  ))}
+                   {isAssistantLoading && (
+                      <div className="flex items-start gap-3">
+                        <Avatar className="h-8 w-8">
+                          <AvatarFallback><Bot className="h-5 w-5"/></AvatarFallback>
+                        </Avatar>
+                        <div className="rounded-lg bg-background px-3 py-2 text-sm flex items-center gap-2">
+                           <Loader2 className="h-4 w-4 animate-spin"/>
+                           <span>Kisan is thinking...</span>
+                        </div>
+                      </div>
+                    )}
+                </div>
+              </ScrollArea>
+            </CardContent>
+            <CardFooter className="p-4 pt-0">
+               <div className="flex w-full items-center gap-2">
+                  <Textarea
+                    placeholder="Type your question here..."
+                    value={userQuestion}
+                    onChange={(e) => setUserQuestion(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleAskKisan();
+                      }
+                    }}
+                    rows={1}
+                    className="min-h-[40px] resize-none"
+                    disabled={isAssistantLoading}
+                  />
+                  <Button onClick={handleAskKisan} disabled={!userQuestion.trim() || isAssistantLoading} size="icon">
+                    <Send className="h-4 w-4" />
+                    <span className="sr-only">Send</span>
+                  </Button>
+                </div>
+            </CardFooter>
+          </Card>
+        </div>
       </CardContent>
     </Card>
   );
