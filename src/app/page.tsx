@@ -77,7 +77,7 @@ export default function Home() {
         <header className="flex flex-col items-center text-center">
           <Leaf className="mb-2 h-12 w-12 text-primary" />
           <h1 className="font-headline text-5xl font-bold text-primary">Kisan Saathi AI</h1>
-          <p className="mt-2 text-lg text-muted-foreground">जय जवान जय किसान</p>
+          <p className="mt-2 text-lg text-muted-foreground">जय जवान जय किसान 🇮🇳</p>
         </header>
 
         <Card className="shadow-lg">
