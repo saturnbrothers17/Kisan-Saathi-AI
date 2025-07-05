@@ -21,7 +21,8 @@ const PredictDiseaseInputSchema = z.object({
 export type PredictDiseaseInput = z.infer<typeof PredictDiseaseInputSchema>;
 
 const PredictDiseaseOutputSchema = z.object({
-  diseaseName: z.string().describe('The predicted name of the disease.'),
+  commonName: z.string().describe('The common, easy-to-understand name of the disease in English.'),
+  hindiName: z.string().describe('The name of the disease in Hindi.'),
   confidencePercentage: z.number().describe('The confidence percentage of the prediction (0-100).'),
 });
 export type PredictDiseaseOutput = z.infer<typeof PredictDiseaseOutputSchema>;
@@ -36,7 +37,9 @@ const prompt = ai.definePrompt({
   output: {schema: PredictDiseaseOutputSchema},
   prompt: `You are an expert in plant pathology. Analyze the image and predict the disease affecting the plant.
 
-  Return the disease name and the confidence percentage of your prediction.
+  Provide a common, easy-to-understand name for the disease in English, and also provide the name in Hindi.
+  
+  Return the common English name, the Hindi name, and the confidence percentage of your prediction.
   
   Analyze this photo: {{media url=photoDataUri}}
   `,

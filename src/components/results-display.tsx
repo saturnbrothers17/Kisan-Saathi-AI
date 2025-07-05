@@ -27,9 +27,12 @@ export function ResultsDisplay({ prediction, treatment }: ResultsDisplayProps) {
       <CardContent className="space-y-6">
         <div>
           <h3 className="text-lg font-semibold font-headline">Predicted Disease</h3>
-          <div className="flex items-center gap-4 mt-2">
+          <div className="flex items-center gap-4 mt-2 flex-wrap">
             <Badge variant="secondary" className="text-base">
-              {prediction.diseaseName}
+              {prediction.commonName}
+            </Badge>
+            <Badge variant="outline" className="text-base font-normal">
+              {prediction.hindiName}
             </Badge>
           </div>
           <div className="mt-4 space-y-2">

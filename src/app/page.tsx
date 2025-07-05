@@ -54,7 +54,7 @@ export default function Home() {
       setPrediction(predResult);
 
       const treatResult = await suggestTreatment({
-        diseaseName: predResult.diseaseName,
+        diseaseName: predResult.commonName,
         confidenceLevel: predResult.confidencePercentage / 100,
         imageUri: imageDataUri,
       });
