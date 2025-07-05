@@ -28,14 +28,20 @@ export type TreatmentSuggestionsInput = z.infer<typeof TreatmentSuggestionsInput
 const TreatmentSuggestionsOutputSchema = z.object({
   conventionalTreatments: z
     .array(z.string())
-    .describe('A list of conventional treatment methods.'),
+    .describe('A list of conventional treatment methods in English.'),
   traditionalTreatments: z
     .array(z.string())
-    .describe('A list of traditional treatment methods.'),
+    .describe('A list of traditional treatment methods in English.'),
+  conventionalTreatmentsHindi: z
+    .array(z.string())
+    .describe('A list of conventional treatment methods in Hindi.'),
+  traditionalTreatmentsHindi: z
+    .array(z.string())
+    .describe('A list of traditional treatment methods in Hindi.'),
   confidenceNote: z
     .string()
     .describe(
-      'Explanatory note about the confidence level and the treatments suggested.'
+      'Explanatory note about the confidence level and the treatments suggested in English.'
     ),
 });
 export type TreatmentSuggestionsOutput = z.infer<typeof TreatmentSuggestionsOutputSchema>;
@@ -58,11 +64,11 @@ const prompt = ai.definePrompt({
 
   Based on the identified disease: {{diseaseName}}, its prediction confidence level: {{confidenceLevel}}, and the image of the plant: {{media url=imageUri}}, suggest appropriate treatment methods.
 
-  Include both conventional and traditional (desi) remedies.
+  Include both conventional and traditional (desi) remedies. Provide the treatments in both English and Hindi.
 
-  If the confidence level is below 0.5, emphasize caution and suggest consulting with a local agricultural expert.  Explain this in the confidenceNote field.
+  If the confidence level is below 0.5, emphasize caution and suggest consulting with a local agricultural expert.  Explain this in the confidenceNote field in English.
 
-  Format the conventionalTreatments and traditionalTreatments as bulleted lists.
+  Format the conventionalTreatments, traditionalTreatments, conventionalTreatmentsHindi, and traditionalTreatmentsHindi as lists of strings.
 `,
 });
 

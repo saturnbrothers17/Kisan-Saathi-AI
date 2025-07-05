@@ -53,8 +53,8 @@ export function ResultsDisplay({ prediction, treatment }: ResultsDisplayProps) {
                 </div>
                 <div className="space-y-4">
                     <h4 className="font-headline text-xl font-semibold flex items-center gap-2">हिंदी (Hindi)</h4>
-                    <TreatmentSection icon={<TestTube2 className="h-5 w-5 text-primary"/>} title="Conventional Treatments" items={treatment.conventionalTreatments} />
-                    <TreatmentSection icon={<Trees className="h-5 w-5 text-primary"/>} title="Traditional (Desi) Remedies" items={treatment.traditionalTreatments} />
+                    <TreatmentSection icon={<TestTube2 className="h-5 w-5 text-primary"/>} title="रासायनिक उपचार" items={treatment.conventionalTreatmentsHindi} />
+                    <TreatmentSection icon={<Trees className="h-5 w-5 text-primary"/>} title="पारंपरिक (देसी) उपचार" items={treatment.traditionalTreatmentsHindi} />
                 </div>
             </div>
         </div>
@@ -80,7 +80,7 @@ interface TreatmentSectionProps {
 }
 
 function TreatmentSection({icon, title, items}: TreatmentSectionProps) {
-    if (items.length === 0) return null;
+    if (!items || items.length === 0) return null;
     return (
         <div className="space-y-2">
             <h5 className="font-semibold flex items-center gap-2 text-muted-foreground">{icon} {title}</h5>
