@@ -1,16 +1,21 @@
 'use client';
 
-import { useState, type ChangeEvent } from 'react';
+import { useState, type ChangeEvent, useEffect } from 'react';
 import Image from 'next/image';
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, type User } from 'firebase/auth';
 import { predictDisease, type PredictDiseaseOutput } from '@/ai/flows/disease-prediction';
 import { suggestTreatment, type TreatmentSuggestionsOutput } from '@/ai/flows/treatment-suggestions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Leaf, UploadCloud, Loader2 } from 'lucide-react';
+import { Leaf, UploadCloud, Loader2, LogIn, LogOut } from 'lucide-react';
 import { LoadingSkeleton } from '@/components/loading-skeleton';
 import { ResultsDisplay } from '@/components/results-display';
+import app from '@/lib/firebase';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function Home() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -19,6 +24,46 @@ export default function Home() {
   const [treatment, setTreatment] = useState<TreatmentSuggestionsOutput | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const [user, setUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
+  useEffect(() => {
+    const auth = getAuth(app);
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setAuthLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const handleSignIn = async () => {
+    const auth = getAuth(app);
+    const provider = new GoogleAuthProvider();
+    try {
+      await signInWithPopup(auth, provider);
+    } catch (error) {
+      console.error("Error signing in with Google", error);
+      toast({
+        variant: 'destructive',
+        title: 'Sign In Failed',
+        description: 'Could not sign in with Google. Please try again.',
+      });
+    }
+  };
+
+  const handleSignOut = async () => {
+    const auth = getAuth(app);
+    try {
+      await signOut(auth);
+    } catch (error) {
+      console.error("Error signing out", error);
+       toast({
+        variant: 'destructive',
+        title: 'Sign Out Failed',
+        description: 'Could not sign out. Please try again.',
+      });
+    }
+  };
 
   const handleImageChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -74,7 +119,43 @@ export default function Home() {
   return (
     <main className="flex min-h-screen w-full flex-col items-center bg-background p-4 sm:p-8 md:p-12">
       <div className="w-full max-w-2xl space-y-8">
-        <header className="flex flex-col items-center text-center">
+        <header className="relative flex flex-col items-center text-center py-4">
+           <div className="absolute top-4 right-0">
+            {authLoading ? (
+              <Skeleton className="h-10 w-24 rounded-md" />
+            ) : user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                    <Avatar className="h-10 w-10">
+                      <AvatarImage src={user.photoURL!} alt={user.displayName!} />
+                      <AvatarFallback>{user.displayName?.charAt(0).toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="end" forceMount>
+                  <DropdownMenuLabel className="font-normal">
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium leading-none">{user.displayName}</p>
+                      <p className="text-xs leading-none text-muted-foreground">
+                        {user.email}
+                      </p>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleSignOut}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Log out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button onClick={handleSignIn}>
+                <LogIn className="mr-2 h-4 w-4" />
+                Sign In
+              </Button>
+            )}
+          </div>
           <Leaf className="mb-2 h-12 w-12 text-primary" />
           <h1 className="font-headline text-5xl font-bold text-primary">Kisan Saathi AI</h1>
           <p className="mt-2 text-lg text-muted-foreground">जय जवान जय किसान 🇮🇳</p>
