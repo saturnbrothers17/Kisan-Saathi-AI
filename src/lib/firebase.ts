@@ -8,7 +8,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyBnGzgfBEOd0gqGx68dQZ6WgwCcxpvqPsY",
   authDomain: "kisan-saathi-ai.firebaseapp.com",
   projectId: "kisan-saathi-ai",
-  storageBucket: "kisan-saathi-ai.firebasestorage.app",
+  storageBucket: "kisan-saathi-ai.appspot.com",
   messagingSenderId: "691962974417",
   appId: "1:691962974417:web:b4f404eef99ca8a45075f0"
 };
