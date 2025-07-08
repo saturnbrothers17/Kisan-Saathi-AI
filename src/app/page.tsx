@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type ChangeEvent } from 'react';
+import { useState, type ChangeEvent, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import { predictDisease, type PredictDiseaseOutput } from '@/ai/flows/disease-prediction';
@@ -9,10 +9,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Leaf, UploadCloud, Loader2 } from 'lucide-react';
+import { Leaf, UploadCloud, Loader2, Camera, VideoOff } from 'lucide-react';
 import { LoadingSkeleton } from '@/components/loading-skeleton';
 import { ResultsDisplay } from '@/components/results-display';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const AuthButton = dynamic(() => 
   import('@/components/auth-button').then(mod => mod.AuthButton), 
@@ -29,28 +31,103 @@ export default function Home() {
   const [treatment, setTreatment] = useState<TreatmentSuggestionsOutput | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  
+  const [activeTab, setActiveTab] = useState('upload');
+  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
+  const [isCameraLoading, setIsCameraLoading] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+
+  const stopCameraStream = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+      if(videoRef.current) {
+        videoRef.current.srcObject = null;
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'camera') {
+      const getCameraPermission = async () => {
+        setIsCameraLoading(true);
+        stopCameraStream();
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+          streamRef.current = stream;
+          setHasCameraPermission(true);
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+          }
+        } catch (error) {
+          console.error('Error accessing camera:', error);
+          setHasCameraPermission(false);
+          toast({
+            variant: 'destructive',
+            title: 'Camera Access Denied',
+            description: 'Please enable camera permissions in your browser settings to use this app.',
+          });
+        } finally {
+          setIsCameraLoading(false);
+        }
+      };
+      getCameraPermission();
+    } else {
+      stopCameraStream();
+    }
+
+    return () => {
+      stopCameraStream();
+    };
+  }, [activeTab, toast]);
 
   const handleImageChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       setPrediction(null);
       setTreatment(null);
-      setImagePreview(URL.createObjectURL(file));
-
+      
       const reader = new FileReader();
       reader.onloadend = () => {
-        setImageDataUri(reader.result as string);
+        const result = reader.result as string;
+        setImageDataUri(result);
+        setImagePreview(result);
       };
       reader.readAsDataURL(file);
     }
   };
+
+  const handleCapture = () => {
+    if (videoRef.current) {
+      const canvas = document.createElement('canvas');
+      canvas.width = videoRef.current.videoWidth;
+      canvas.height = videoRef.current.videoHeight;
+      const context = canvas.getContext('2d');
+      if (context) {
+        context.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+        const dataUri = canvas.toDataURL('image/jpeg');
+        setImageDataUri(dataUri);
+        setImagePreview(dataUri);
+        setActiveTab('upload');
+      }
+    }
+  };
+
+  const handleTabChange = (value: string) => {
+    setImagePreview(null);
+    setImageDataUri(null);
+    setPrediction(null);
+    setTreatment(null);
+    setActiveTab(value);
+  }
 
   const handleSubmit = async () => {
     if (!imageDataUri) {
       toast({
         variant: 'destructive',
         title: 'No Image Selected',
-        description: 'Please select an image of a plant to analyze.',
+        description: 'Please select or capture an image of a plant to analyze.',
       });
       return;
     }
@@ -95,26 +172,68 @@ export default function Home() {
 
         <Card className="shadow-lg">
           <CardHeader>
-            <CardTitle>Upload Plant Image</CardTitle>
-            <CardDescription>Upload an image of the affected plant for disease diagnosis.</CardDescription>
+            <CardTitle>Provide Plant Image</CardTitle>
+            <CardDescription>Choose a method to provide an image for disease diagnosis.</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col items-center justify-center space-y-4">
-              <label htmlFor="file-upload" className="w-full cursor-pointer">
-                <div className="relative flex aspect-video w-full flex-col items-center justify-center rounded-lg border-2 border-dashed border-border bg-muted/50 transition-colors hover:border-primary">
-                  {imagePreview ? (
-                    <Image src={imagePreview} alt="Selected plant" layout="fill" objectFit="contain" className="rounded-lg" />
-                  ) : (
-                    <div className="flex flex-col items-center justify-center space-y-2 text-muted-foreground">
-                      <UploadCloud className="h-12 w-12" />
-                      <span className="font-semibold">Click to upload or drag and drop</span>
-                      <span className="text-sm">PNG, JPG, or WEBP</span>
-                    </div>
+            <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="upload"><UploadCloud className="mr-2 h-4 w-4"/>File Upload</TabsTrigger>
+                <TabsTrigger value="camera"><Camera className="mr-2 h-4 w-4"/>Live Camera</TabsTrigger>
+              </TabsList>
+              <TabsContent value="upload" className="mt-4">
+                 <div className="flex flex-col items-center justify-center space-y-4">
+                    <label htmlFor="file-upload" className="w-full cursor-pointer">
+                      <div className="relative flex aspect-video w-full flex-col items-center justify-center rounded-lg border-2 border-dashed border-border bg-muted/50 transition-colors hover:border-primary">
+                        {imagePreview ? (
+                          <Image src={imagePreview} alt="Selected plant" layout="fill" objectFit="contain" className="rounded-lg" />
+                        ) : (
+                          <div className="flex flex-col items-center justify-center space-y-2 text-muted-foreground">
+                            <UploadCloud className="h-12 w-12" />
+                            <span className="font-semibold">Click to upload or drag and drop</span>
+                            <span className="text-sm">PNG, JPG, or WEBP</span>
+                          </div>
+                        )}
+                      </div>
+                    </label>
+                    <Input id="file-upload" type="file" accept="image/png, image/jpeg, image/webp" className="sr-only" onChange={handleImageChange} />
+                  </div>
+              </TabsContent>
+              <TabsContent value="camera" className="mt-4">
+                <div className="flex flex-col items-center justify-center space-y-4">
+                  <div className="relative w-full aspect-video rounded-lg border bg-muted/50 overflow-hidden flex items-center justify-center">
+                    {isCameraLoading ? (
+                       <div className="flex flex-col items-center justify-center space-y-2 text-muted-foreground">
+                          <Loader2 className="h-12 w-12 animate-spin" />
+                          <span>Starting Camera...</span>
+                       </div>
+                    ) : hasCameraPermission === true ? (
+                       <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
+                    ): (
+                       <div className="flex flex-col items-center justify-center space-y-2 text-muted-foreground p-4 text-center">
+                         <VideoOff className="h-12 w-12" />
+                         <span className="font-semibold">Camera Not Available</span>
+                         <span className="text-sm">Could not access the camera. Please check your browser permissions.</span>
+                       </div>
+                    )}
+                  </div>
+                  {hasCameraPermission && (
+                    <Button size="lg" onClick={handleCapture} disabled={isCameraLoading}>
+                       <Camera className="mr-2 h-5 w-5" />
+                       Capture Photo
+                    </Button>
+                  )}
+                  {hasCameraPermission === false && (
+                     <Alert variant="destructive">
+                        <AlertTitle>Camera Access Required</AlertTitle>
+                        <AlertDescription>
+                          Please allow camera access in your browser settings to use this feature. You may need to refresh the page after granting permission.
+                        </AlertDescription>
+                    </Alert>
                   )}
                 </div>
-              </label>
-              <Input id="file-upload" type="file" accept="image/png, image/jpeg, image/webp" className="sr-only" onChange={handleImageChange} />
-            </div>
+              </TabsContent>
+            </Tabs>
           </CardContent>
           <CardFooter className="flex justify-end">
             <Button size="lg" onClick={handleSubmit} disabled={!imageDataUri || isLoading}>
