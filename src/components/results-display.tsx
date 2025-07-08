@@ -140,7 +140,7 @@ export function ResultsDisplay({ prediction, treatment, imageDataUri }: ResultsD
       </CardHeader>
       <CardContent className="space-y-6">
         <div>
-          <h3 className="text-lg font-semibold font-headline">Predicted Disease</h3>
+          <h3 className="text-lg font-semibold font-headline">{prediction.isHealthy ? 'Health Status' : 'Predicted Disease'}</h3>
           <div className="flex items-center gap-4 mt-2 flex-wrap">
             <Badge variant="secondary" className="text-base">
               {prediction.commonName}
@@ -160,21 +160,23 @@ export function ResultsDisplay({ prediction, treatment, imageDataUri }: ResultsD
         
         <Separator />
 
-        <div>
-            <h3 className="text-lg font-semibold font-headline mb-4">Treatment Suggestions</h3>
-            <div className="grid grid-cols-1 gap-x-8 gap-y-6 md:grid-cols-2">
-                <div className="space-y-4">
-                    <h4 className="font-headline text-xl font-semibold flex items-center gap-2">English</h4>
-                    <TreatmentSection icon={<FlaskConical className="h-5 w-5 text-primary"/>} title="Conventional Treatments" items={treatment.conventionalTreatments} />
-                    <TreatmentSection icon={<Trees className="h-5 w-5 text-primary"/>} title="Traditional (Desi) Remedies" items={treatment.traditionalTreatments} />
-                </div>
-                <div className="space-y-4">
-                    <h4 className="font-headline text-xl font-semibold flex items-center gap-2">हिंदी (Hindi)</h4>
-                    <TreatmentSection icon={<TestTube2 className="h-5 w-5 text-primary"/>} title="रासायनिक उपचार" items={treatment.conventionalTreatmentsHindi} />
-                    <TreatmentSection icon={<Trees className="h-5 w-5 text-primary"/>} title="पारंपरिक (देसी) उपचार" items={treatment.traditionalTreatmentsHindi} />
-                </div>
-            </div>
-        </div>
+        {!prediction.isHealthy && (
+          <div>
+              <h3 className="text-lg font-semibold font-headline mb-4">Treatment Suggestions</h3>
+              <div className="grid grid-cols-1 gap-x-8 gap-y-6 md:grid-cols-2">
+                  <div className="space-y-4">
+                      <h4 className="font-headline text-xl font-semibold flex items-center gap-2">English</h4>
+                      <TreatmentSection icon={<FlaskConical className="h-5 w-5 text-primary"/>} title="Conventional Treatments" items={treatment.conventionalTreatments} />
+                      <TreatmentSection icon={<Trees className="h-5 w-5 text-primary"/>} title="Traditional (Desi) Remedies" items={treatment.traditionalTreatments} />
+                  </div>
+                  <div className="space-y-4">
+                      <h4 className="font-headline text-xl font-semibold flex items-center gap-2">हिंदी (Hindi)</h4>
+                      <TreatmentSection icon={<TestTube2 className="h-5 w-5 text-primary"/>} title="रासायनिक उपचार" items={treatment.conventionalTreatmentsHindi} />
+                      <TreatmentSection icon={<Trees className="h-5 w-5 text-primary"/>} title="पारंपरिक (देसी) उपचार" items={treatment.traditionalTreatmentsHindi} />
+                  </div>
+              </div>
+          </div>
+        )}
 
         {treatment.confidenceNote && (
           <Alert>

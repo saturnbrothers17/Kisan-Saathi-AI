@@ -21,9 +21,10 @@ const PredictDiseaseInputSchema = z.object({
 export type PredictDiseaseInput = z.infer<typeof PredictDiseaseInputSchema>;
 
 const PredictDiseaseOutputSchema = z.object({
-  commonName: z.string().describe('The common, easy-to-understand name of the disease in English.'),
-  hindiName: z.string().describe('The name of the disease in Hindi.'),
-  confidencePercentage: z.number().describe('The confidence percentage of the prediction (0-100).'),
+  isHealthy: z.boolean().describe('Whether the plant is healthy or not.'),
+  commonName: z.string().describe('If not healthy, the common name of the disease. If healthy, "Healthy".'),
+  hindiName: z.string().describe('If not healthy, the Hindi name of the disease. If healthy, "स्वस्थ".'),
+  confidencePercentage: z.number().describe('The confidence percentage of the prediction (0-100). If healthy, this will be 100.'),
 });
 export type PredictDiseaseOutput = z.infer<typeof PredictDiseaseOutputSchema>;
 
@@ -35,11 +36,13 @@ const prompt = ai.definePrompt({
   name: 'predictDiseasePrompt',
   input: {schema: PredictDiseaseInputSchema},
   output: {schema: PredictDiseaseOutputSchema},
-  prompt: `You are an expert in plant pathology. Analyze the image and predict the disease affecting the plant.
+  prompt: `You are an expert in plant pathology. Analyze the provided image of a plant.
 
-  Provide a common, easy-to-understand name for the disease in English, and also provide the name in Hindi.
+  First, determine if the plant is perfectly healthy. Analyze the complete image to be sure.
   
-  Return the common English name, the Hindi name, and the confidence percentage of your prediction.
+  - If the plant is 100% healthy, you MUST set the 'isHealthy' flag to true. In this case, set 'commonName' to "Healthy", 'hindiName' to "स्वस्थ", and 'confidencePercentage' to 100.
+  
+  - If the plant shows any signs of disease, you MUST set 'isHealthy' to false. Then, predict the disease affecting the plant. Provide a common, easy-to-understand name for the disease in English, and also provide the name in Hindi. Return the common English name, the Hindi name, and the confidence percentage of your prediction.
   
   Analyze this photo: {{media url=photoDataUri}}
   `,

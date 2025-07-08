@@ -140,12 +140,22 @@ export default function Home() {
       const predResult = await predictDisease({ photoDataUri: imageDataUri });
       setPrediction(predResult);
 
-      const treatResult = await suggestTreatment({
-        diseaseName: predResult.commonName,
-        confidenceLevel: predResult.confidencePercentage / 100,
-        imageUri: imageDataUri,
-      });
-      setTreatment(treatResult);
+      if (predResult.isHealthy) {
+        setTreatment({
+          conventionalTreatments: [],
+          traditionalTreatments: [],
+          conventionalTreatmentsHindi: [],
+          traditionalTreatmentsHindi: [],
+          confidenceNote: 'The plant appears to be healthy. No treatment is necessary. Continue with regular care.',
+        });
+      } else {
+        const treatResult = await suggestTreatment({
+          diseaseName: predResult.commonName,
+          confidenceLevel: predResult.confidencePercentage / 100,
+          imageUri: imageDataUri,
+        });
+        setTreatment(treatResult);
+      }
     } catch (e) {
       console.error(e);
       toast({
