@@ -42,42 +42,54 @@ export default function Home() {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
-      if(videoRef.current) {
-        videoRef.current.srcObject = null;
-      }
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
     }
   };
 
   useEffect(() => {
-    if (activeTab === 'camera') {
-      const getCameraPermission = async () => {
-        setIsCameraLoading(true);
-        stopCameraStream();
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    let isMounted = true;
+
+    const getCameraPermission = async () => {
+      if (activeTab !== 'camera') return;
+      
+      setIsCameraLoading(true);
+      stopCameraStream(); // Ensure previous streams are stopped
+      
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        if (isMounted) {
           streamRef.current = stream;
           setHasCameraPermission(true);
           if (videoRef.current) {
             videoRef.current.srcObject = stream;
           }
-        } catch (error) {
-          console.error('Error accessing camera:', error);
+        } else {
+          // Component unmounted, stop the stream
+          stream.getTracks().forEach(track => track.stop());
+        }
+      } catch (error) {
+        console.error('Error accessing camera:', error);
+        if (isMounted) {
           setHasCameraPermission(false);
           toast({
             variant: 'destructive',
             title: 'Camera Access Denied',
             description: 'Please enable camera permissions in your browser settings to use this app.',
           });
-        } finally {
+        }
+      } finally {
+        if (isMounted) {
           setIsCameraLoading(false);
         }
-      };
-      getCameraPermission();
-    } else {
-      stopCameraStream();
-    }
+      }
+    };
+
+    getCameraPermission();
 
     return () => {
+      isMounted = false;
       stopCameraStream();
     };
   }, [activeTab, toast]);
