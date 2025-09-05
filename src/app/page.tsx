@@ -51,22 +51,21 @@ export default function Home() {
   useEffect(() => {
     let isMounted = true;
 
-    const getCameraPermission = async () => {
+    async function enableCamera() {
       if (activeTab !== 'camera') return;
       
       setIsCameraLoading(true);
-      stopCameraStream(); // Ensure previous streams are stopped
+      stopCameraStream();
       
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: true });
         if (isMounted) {
           streamRef.current = stream;
-          setHasCameraPermission(true);
           if (videoRef.current) {
             videoRef.current.srcObject = stream;
           }
+          setHasCameraPermission(true);
         } else {
-          // Component unmounted, stop the stream
           stream.getTracks().forEach(track => track.stop());
         }
       } catch (error) {
@@ -84,9 +83,9 @@ export default function Home() {
           setIsCameraLoading(false);
         }
       }
-    };
+    }
 
-    getCameraPermission();
+    enableCamera();
 
     return () => {
       isMounted = false;
@@ -127,11 +126,17 @@ export default function Home() {
   };
 
   const handleTabChange = (value: string) => {
+    if (value === activeTab) return;
+
     setImagePreview(null);
     setImageDataUri(null);
     setPrediction(null);
     setTreatment(null);
     setActiveTab(value);
+
+    if(value !== 'camera'){
+        stopCameraStream();
+    }
   }
 
   const handleSubmit = async () => {
