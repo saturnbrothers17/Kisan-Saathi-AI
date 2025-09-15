@@ -72,7 +72,21 @@ Provide practical, actionable advice that farmers can implement.`
       });
 
       console.log('Treatment suggestion result:', result);
-      return NextResponse.json(result);
+      
+      // Parse the nested response structure
+      let parsedResult;
+      if (result.message && result.message.content && result.message.content[0] && result.message.content[0].text) {
+        try {
+          parsedResult = JSON.parse(result.message.content[0].text);
+        } catch (parseError) {
+          console.error('Failed to parse AI response:', parseError);
+          parsedResult = result;
+        }
+      } else {
+        parsedResult = result;
+      }
+      
+      return NextResponse.json(parsedResult);
     } catch (importError) {
       console.error('Import or execution error:', importError);
       return NextResponse.json(
