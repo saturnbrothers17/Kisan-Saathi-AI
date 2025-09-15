@@ -185,7 +185,7 @@ function Home() {
       setPrediction(predictionResult);
       
       // Call treatment API endpoint
-      const treatmentResponse = await fetch('/api/treatment-suggestions', {
+      const treatmentResponse = await fetch('/api/treatment-suggestions-simple', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -260,7 +260,7 @@ function Home() {
         });
       } else {
         // Call treatment API endpoint
-        const treatmentResponse = await fetch('/api/treatment-suggestions', {
+        const treatmentResponse = await fetch('/api/treatment-suggestions-simple', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
