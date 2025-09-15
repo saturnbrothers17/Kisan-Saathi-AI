@@ -169,7 +169,7 @@ function Home() {
     setIsLoading(true);
     try {
       // Call API endpoint instead of direct function
-      const predictionResponse = await fetch('/api/predict-disease', {
+      const predictionResponse = await fetch('/api/predict-disease-test', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -235,7 +235,7 @@ function Home() {
 
     try {
       // Call API endpoint instead of direct function
-      const predictionResponse = await fetch('/api/predict-disease', {
+      const predictionResponse = await fetch('/api/predict-disease-test', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
