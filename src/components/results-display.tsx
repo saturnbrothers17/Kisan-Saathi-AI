@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import type { PredictDiseaseOutput } from "@/ai/flows/disease-prediction";
 import type { TreatmentSuggestionsOutput } from "@/ai/flows/treatment-suggestions";
-import { askKisan } from "@/ai/flows/kisan-assistant";
+// import { askKisan } from "@/ai/flows/kisan-assistant"; // Will use API endpoint instead
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,10 +21,50 @@ interface ResultsDisplayProps {
 }
 
 // Type definition for browser SpeechRecognition API
+interface SpeechRecognitionEvent extends Event {
+  results: SpeechRecognitionResultList;
+  resultIndex: number;
+}
+
+interface SpeechRecognitionResultList {
+  length: number;
+  item(index: number): SpeechRecognitionResult;
+  [index: number]: SpeechRecognitionResult;
+}
+
+interface SpeechRecognitionResult {
+  length: number;
+  item(index: number): SpeechRecognitionAlternative;
+  [index: number]: SpeechRecognitionAlternative;
+  isFinal: boolean;
+}
+
+interface SpeechRecognitionAlternative {
+  transcript: string;
+  confidence: number;
+}
+
+interface SpeechRecognition extends EventTarget {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onresult: ((this: SpeechRecognition, ev: SpeechRecognitionEvent) => any) | null;
+  onerror: ((this: SpeechRecognition, ev: Event) => any) | null;
+  onend: ((this: SpeechRecognition, ev: Event) => any) | null;
+  onstart: ((this: SpeechRecognition, ev: Event) => any) | null;
+  start(): void;
+  stop(): void;
+  abort(): void;
+}
+
 declare global {
   interface Window {
-    SpeechRecognition: typeof SpeechRecognition;
-    webkitSpeechRecognition: typeof SpeechRecognition;
+    SpeechRecognition: {
+      new (): SpeechRecognition;
+    };
+    webkitSpeechRecognition: {
+      new (): SpeechRecognition;
+    };
   }
 }
 
@@ -55,13 +95,13 @@ export function ResultsDisplay({ prediction, treatment, imageDataUri }: ResultsD
         setIsListening(false);
       };
 
-      recognition.onresult = (event) => {
+      recognition.onresult = (event: SpeechRecognitionEvent) => {
         const transcript = event.results[0][0].transcript;
         setUserQuestion(prev => (prev ? prev + ' ' : '') + transcript);
       };
 
-      recognition.onerror = (event) => {
-        console.error('Speech recognition error', event.error);
+      recognition.onerror = (event: Event) => {
+        console.error('Speech recognition error:', event);
         setIsListening(false);
         toast({
             variant: 'destructive',
@@ -105,13 +145,26 @@ export function ResultsDisplay({ prediction, treatment, imageDataUri }: ResultsD
     setIsAssistantLoading(true);
 
     try {
-      const result = await askKisan({
-        question: questionToAsk,
-        diseaseName: prediction.commonName,
-        confidencePercentage: prediction.confidencePercentage,
-        treatment: treatment,
-        photoDataUri: imageDataUri,
+      // Call API endpoint instead of direct function
+      const response = await fetch('/api/kisan-assistant', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          question: questionToAsk,
+          diseaseName: prediction.commonName,
+          confidencePercentage: prediction.confidencePercentage,
+          treatmentSuggestions: treatment,
+          photoDataUri: imageDataUri,
+        }),
       });
+
+      if (!response.ok) {
+        throw new Error('Assistant request failed');
+      }
+
+      const result = await response.json();
       setMessages([...newMessages, { author: 'kisan' as const, content: result.answer }]);
     } catch (e) {
       console.error(e);

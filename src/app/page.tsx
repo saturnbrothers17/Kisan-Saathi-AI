@@ -3,8 +3,8 @@
 import { useState, type ChangeEvent, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
-import { predictDisease, type PredictDiseaseOutput } from '@/ai/flows/disease-prediction';
-import { suggestTreatment, type TreatmentSuggestionsOutput } from '@/ai/flows/treatment-suggestions';
+import { type PredictDiseaseOutput } from '@/ai/flows/disease-prediction';
+import { type TreatmentSuggestionsOutput } from '@/ai/flows/treatment-suggestions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -168,14 +168,39 @@ function Home() {
 
     setIsLoading(true);
     try {
-      const predictionResult = await predictDisease({ photoDataUri: imageDataUri });
+      // Call API endpoint instead of direct function
+      const predictionResponse = await fetch('/api/predict-disease', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ photoDataUri: imageDataUri }),
+      });
+      
+      if (!predictionResponse.ok) {
+        throw new Error('Disease prediction failed');
+      }
+      
+      const predictionResult = await predictionResponse.json();
       setPrediction(predictionResult);
       
-      const treatmentResult = await suggestTreatment({
-        diseaseName: predictionResult.commonName,
-        confidenceLevel: predictionResult.confidencePercentage / 100,
-        imageUri: imageDataUri,
+      // Call treatment API endpoint
+      const treatmentResponse = await fetch('/api/treatment-suggestions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          diseaseName: predictionResult.commonName,
+          confidencePercentage: predictionResult.confidencePercentage,
+        }),
       });
+      
+      if (!treatmentResponse.ok) {
+        throw new Error('Treatment suggestions failed');
+      }
+      
+      const treatmentResult = await treatmentResponse.json();
       setTreatment(treatmentResult);
       
       toast({
@@ -209,7 +234,20 @@ function Home() {
     setTreatment(null);
 
     try {
-      const predResult = await predictDisease({ photoDataUri: imageDataUri });
+      // Call API endpoint instead of direct function
+      const predictionResponse = await fetch('/api/predict-disease', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ photoDataUri: imageDataUri }),
+      });
+      
+      if (!predictionResponse.ok) {
+        throw new Error('Disease prediction failed');
+      }
+      
+      const predResult = await predictionResponse.json();
       setPrediction(predResult);
 
       if (predResult.isHealthy) {
@@ -221,11 +259,23 @@ function Home() {
           confidenceNote: 'The plant appears to be healthy. No treatment is necessary. Continue with regular care.',
         });
       } else {
-        const treatResult = await suggestTreatment({
-          diseaseName: predResult.commonName,
-          confidenceLevel: predResult.confidencePercentage / 100,
-          imageUri: imageDataUri,
+        // Call treatment API endpoint
+        const treatmentResponse = await fetch('/api/treatment-suggestions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            diseaseName: predResult.commonName,
+            confidencePercentage: predResult.confidencePercentage,
+          }),
         });
+        
+        if (!treatmentResponse.ok) {
+          throw new Error('Treatment suggestions failed');
+        }
+        
+        const treatResult = await treatmentResponse.json();
         setTreatment(treatResult);
       }
     } catch (e) {
