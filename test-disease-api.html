@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Disease Prediction API</title>
+</head>
+<body>
+    <h1>Disease Prediction API Test</h1>
+    <input type="file" id="imageInput" accept="image/*">
+    <button onclick="testAPI()">Test Disease Prediction</button>
+    <div id="result"></div>
+
+    <script>
+        async function testAPI() {
+            const fileInput = document.getElementById('imageInput');
+            const resultDiv = document.getElementById('result');
+            
+            if (!fileInput.files[0]) {
+                resultDiv.innerHTML = 'Please select an image first';
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+            
+            reader.onload = async function(e) {
+                const photoDataUri = e.target.result;
+                
+                try {
+                    resultDiv.innerHTML = 'Testing API...';
+                    
+                    const response = await fetch('/api/predict-disease', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ photoDataUri })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    resultDiv.innerHTML = `
+                        <h3>Response Status: ${response.status}</h3>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } catch (error) {
+                    resultDiv.innerHTML = `Error: ${error.message}`;
+                }
+            };
+            
+            reader.readAsDataURL(file);
+        }
+    </script>
+</body>
+</html>
