@@ -1,0 +1,152 @@
+import { NextRequest, NextResponse } from 'next/server';
+
+export async function GET() {
+  const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Treatment Suggestions API</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .result { margin-top: 20px; padding: 15px; border: 1px solid #ccc; background: #f9f9f9; }
+        button { padding: 10px 20px; background: #007bff; color: white; border: none; cursor: pointer; margin: 5px; }
+        input, select { padding: 8px; margin: 5px; width: 200px; }
+        .treatment-section { margin: 15px 0; padding: 10px; border-left: 3px solid #28a745; }
+        .error { color: red; }
+        .success { color: green; }
+    </style>
+</head>
+<body>
+    <h1>Test Treatment Suggestions API</h1>
+    
+    <div>
+        <label>Disease Name:</label>
+        <input type="text" id="diseaseName" value="Rice sheath blight" placeholder="Enter disease name">
+    </div>
+    
+    <div>
+        <label>Confidence Percentage:</label>
+        <input type="number" id="confidencePercentage" value="95" min="0" max="100" placeholder="Enter confidence %">
+    </div>
+    
+    <button onclick="testTreatmentAPI()">Test Treatment Suggestions</button>
+    <button onclick="testWithDifferentDisease()">Test with Tomato Blight</button>
+    <button onclick="testWithLowConfidence()">Test with Low Confidence</button>
+    
+    <div id="result"></div>
+
+    <script>
+        async function testTreatmentAPI() {
+            const diseaseName = document.getElementById('diseaseName').value;
+            const confidencePercentage = parseInt(document.getElementById('confidencePercentage').value);
+            const resultDiv = document.getElementById('result');
+            
+            if (!diseaseName || isNaN(confidencePercentage)) {
+                resultDiv.innerHTML = '<div class="error">Please enter both disease name and confidence percentage</div>';
+                return;
+            }
+
+            try {
+                resultDiv.innerHTML = '<div style="color: blue;">Testing treatment suggestions API...</div>';
+                
+                const response = await fetch('/api/treatment-suggestions-working', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        diseaseName: diseaseName,
+                        confidencePercentage: confidencePercentage
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = \`
+                        <h3 class="success">✅ Treatment Suggestions API Working!</h3>
+                        <p><strong>Status:</strong> \${response.status}</p>
+                        <p><strong>Disease:</strong> \${diseaseName}</p>
+                        <p><strong>Confidence:</strong> \${confidencePercentage}%</p>
+                        
+                        <div class="treatment-section">
+                            <h4>🧪 Conventional Treatments (English):</h4>
+                            <ul>\${data.conventionalTreatments?.map(t => \`<li>\${t}</li>\`).join('') || '<li>No treatments provided</li>'}</ul>
+                        </div>
+                        
+                        <div class="treatment-section">
+                            <h4>🌿 Traditional Treatments (English):</h4>
+                            <ul>\${data.traditionalTreatments?.map(t => \`<li>\${t}</li>\`).join('') || '<li>No treatments provided</li>'}</ul>
+                        </div>
+                        
+                        <div class="treatment-section">
+                            <h4>🧪 Conventional Treatments (Hindi):</h4>
+                            <ul>\${data.conventionalTreatmentsHindi?.map(t => \`<li>\${t}</li>\`).join('') || '<li>No treatments provided</li>'}</ul>
+                        </div>
+                        
+                        <div class="treatment-section">
+                            <h4>🌿 Traditional Treatments (Hindi):</h4>
+                            <ul>\${data.traditionalTreatmentsHindi?.map(t => \`<li>\${t}</li>\`).join('') || '<li>No treatments provided</li>'}</ul>
+                        </div>
+                        
+                        <div class="treatment-section">
+                            <h4>📝 Confidence Note:</h4>
+                            <p>\${data.confidenceNote || 'No confidence note provided'}</p>
+                        </div>
+                        
+                        <h4>Raw Response:</h4>
+                        <pre>\${JSON.stringify(data, null, 2)}</pre>
+                    \`;
+                } else {
+                    resultDiv.innerHTML = \`
+                        <h3 class="error">❌ API Error</h3>
+                        <p><strong>Status:</strong> \${response.status}</p>
+                        <p><strong>Error:</strong> \${data.error || 'Unknown error'}</p>
+                        <pre>\${JSON.stringify(data, null, 2)}</pre>
+                    \`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = \`<div class="error">❌ Network Error: \${error.message}</div>\`;
+            }
+        }
+        
+        function testWithDifferentDisease() {
+            document.getElementById('diseaseName').value = 'Tomato late blight';
+            document.getElementById('confidencePercentage').value = '88';
+            testTreatmentAPI();
+        }
+        
+        function testWithLowConfidence() {
+            document.getElementById('diseaseName').value = 'Wheat rust';
+            document.getElementById('confidencePercentage').value = '45';
+            testTreatmentAPI();
+        }
+    </script>
+</body>
+</html>
+  `;
+
+  return new NextResponse(html, {
+    headers: {
+      'Content-Type': 'text/html',
+    },
+  });
+}
+
+export async function POST(request: NextRequest) {
+  // Redirect POST requests to the actual treatment API for testing
+  const body = await request.json();
+  
+  const response = await fetch(`${process.env.VERCEL_URL || 'http://localhost:3000'}/api/treatment-suggestions-working`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+  
+  const data = await response.json();
+  return NextResponse.json(data, { status: response.status });
+}
