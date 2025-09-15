@@ -326,3 +326,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 **Made with ❤️ for Indian Farmers**
 
 *Empowering agriculture through AI and technology*
+#   K i s a n - S a a t h i - A I  
+ 
