@@ -21,11 +21,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Import and call the AI flow
-    const { predictDisease } = await import('@/ai/flows/disease-prediction');
-    const result = await predictDisease({ photoDataUri });
-    
-    return NextResponse.json(result);
+    // Import and call the AI flow with error handling
+    try {
+      const { predictDisease } = await import('@/ai/flows/disease-prediction');
+      console.log('Disease prediction function imported successfully');
+      const result = await predictDisease({ photoDataUri });
+      console.log('Disease prediction result:', result);
+      return NextResponse.json(result);
+    } catch (importError) {
+      console.error('Import or execution error:', importError);
+      throw new Error(`AI flow error: ${importError instanceof Error ? importError.message : 'Unknown import error'}`);
+    }
   } catch (error) {
     console.error('Disease prediction error:', error);
     return NextResponse.json(

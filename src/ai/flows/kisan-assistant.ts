@@ -44,11 +44,13 @@ export async function askKisan(input: KisanAssistantInput): Promise<KisanAssista
   return kisanAssistantFlow(input);
 }
 
-const prompt = ai.definePrompt({
-  name: 'kisanAssistantPrompt',
-  input: {schema: KisanAssistantInputSchema},
-  output: {schema: KisanAssistantOutputSchema},
-  prompt: `You are "Kisan," a friendly and knowledgeable AI assistant for farmers. Your purpose is to answer follow-up questions about a specific plant disease diagnosis.
+const prompt = ai.definePrompt(
+  {
+    name: 'kisanAssistantPrompt',
+    input: {schema: KisanAssistantInputSchema},
+    output: {schema: KisanAssistantOutputSchema},
+  },
+  `You are "Kisan," a friendly and knowledgeable AI assistant for farmers. Your purpose is to answer follow-up questions about a specific plant disease diagnosis.
 
 You have been provided with the following context:
 - Disease Name: {{diseaseName}}
@@ -68,8 +70,8 @@ Your task is to:
 3.  Be polite and empathetic.
 4.  **IMPORTANT:** If the user asks a question that is NOT related to the diagnosed disease, the plant, or its treatment, you MUST politely decline to answer. For example, if they ask about the weather, other crops, or general knowledge, say something like, "I can only answer questions about the current disease analysis. Please ask a question related to '{{diseaseName}}'."
 
-Formulate your response and provide it in the 'answer' field.`,
-});
+Formulate your response and provide it in the 'answer' field.`
+);
 
 
 const kisanAssistantFlow = ai.defineFlow(

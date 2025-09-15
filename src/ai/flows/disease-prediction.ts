@@ -32,11 +32,13 @@ export async function predictDisease(input: PredictDiseaseInput): Promise<Predic
   return predictDiseaseFlow(input);
 }
 
-const prompt = ai.definePrompt({
-  name: 'predictDiseasePrompt',
-  input: {schema: PredictDiseaseInputSchema},
-  output: {schema: PredictDiseaseOutputSchema},
-  prompt: `You are an expert in plant pathology. Analyze the provided image of a plant.
+const prompt = ai.definePrompt(
+  {
+    name: 'predictDiseasePrompt',
+    input: {schema: PredictDiseaseInputSchema},
+    output: {schema: PredictDiseaseOutputSchema},
+  },
+  `You are an expert in plant pathology. Analyze the provided image of a plant.
 
   First, determine if the plant is perfectly healthy. Analyze the complete image to be sure.
   
@@ -45,8 +47,8 @@ const prompt = ai.definePrompt({
   - If the plant shows any signs of disease, you MUST set 'isHealthy' to false. Then, predict the disease affecting the plant. Provide a common, easy-to-understand name for the disease in English, and also provide the name in Hindi. Return the common English name, the Hindi name, and the confidence percentage of your prediction.
   
   Analyze this photo: {{media url=photoDataUri}}
-  `,
-});
+  `
+);
 
 const predictDiseaseFlow = ai.defineFlow(
   {

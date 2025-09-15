@@ -52,15 +52,17 @@ export async function suggestTreatment(
   return suggestTreatmentFlow(input);
 }
 
-const prompt = ai.definePrompt({
-  name: 'treatmentSuggestionsPrompt',
-  input: {
-    schema: TreatmentSuggestionsInputSchema,
+const prompt = ai.definePrompt(
+  {
+    name: 'treatmentSuggestionsPrompt',
+    input: {
+      schema: TreatmentSuggestionsInputSchema,
+    },
+    output: {
+      schema: TreatmentSuggestionsOutputSchema,
+    },
   },
-  output: {
-    schema: TreatmentSuggestionsOutputSchema,
-  },
-  prompt: `You are an agricultural expert providing treatment suggestions for plant diseases.
+  `You are an agricultural expert providing treatment suggestions for plant diseases.
 
   Based on the identified disease: {{diseaseName}}, its prediction confidence level: {{confidenceLevel}}, and the image of the plant: {{media url=imageUri}}, suggest appropriate treatment methods.
 
@@ -69,8 +71,8 @@ const prompt = ai.definePrompt({
   If the confidence level is below 0.5, emphasize caution and suggest consulting with a local agricultural expert.  Explain this in the confidenceNote field in English.
 
   Format the conventionalTreatments, traditionalTreatments, conventionalTreatmentsHindi, and traditionalTreatmentsHindi as lists of strings.
-`,
-});
+`
+);
 
 const suggestTreatmentFlow = ai.defineFlow(
   {
