@@ -10,7 +10,7 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import {z} from 'zod';
 
 const TreatmentSuggestionsInputSchema = z.object({
   diseaseName: z.string().describe('The name of the plant disease.'),

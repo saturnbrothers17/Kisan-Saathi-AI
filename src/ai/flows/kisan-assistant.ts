@@ -9,7 +9,7 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import {z} from 'zod';
 import type {TreatmentSuggestionsOutput} from './treatment-suggestions';
 
 // Re-defining the schema here to avoid exporting it from a 'use server' file.
