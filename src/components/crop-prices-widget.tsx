@@ -112,10 +112,10 @@ export function CropPricesWidget() {
         console.error('GPS location failed:', error);
         // Set default location if GPS fails
         setLocation({
-          lat: 28.6139,
-          lon: 77.2090,
-          city: 'Delhi',
-          district: 'Delhi'
+          lat: 26.8467,
+          lon: 80.9462,
+          city: 'Lucknow',
+          district: 'Lucknow'
         });
       }
     };

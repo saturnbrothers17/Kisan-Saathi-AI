@@ -104,7 +104,7 @@ export function WeatherWidget() {
         setError('Failed to load weather data');
         // Set fallback data
         setWeather({
-          location: 'Delhi, IN',
+          location: 'Lucknow, IN',
           temperature: 28,
           description: 'Clear sky',
           humidity: 65,
@@ -114,7 +114,11 @@ export function WeatherWidget() {
           precipitation: 0,
           uvIndex: 5,
           pressure: 1013,
-          dewPoint: 18
+          dewPoint: 18,
+          feelsLike: 30,
+          rainChance: 0,
+          isRaining: false,
+          cloudCover: 20
         });
       } finally {
         setLoading(false);
@@ -144,7 +148,23 @@ export function WeatherWidget() {
       
       if (!weatherResponse.ok) {
         console.log('Open-Meteo API failed, using demo data');
-        setDemoWeatherData();
+        setWeather({
+          location: 'Lucknow, IN',
+          temperature: 28,
+          description: 'Clear sky',
+          humidity: 65,
+          windSpeed: 3.2,
+          visibility: 10,
+          weatherCode: 0,
+          precipitation: 0,
+          uvIndex: 5,
+          pressure: 1013,
+          dewPoint: 18,
+          feelsLike: 30,
+          rainChance: 0,
+          isRaining: false,
+          cloudCover: 20
+        });
         return;
       }
       
@@ -233,25 +253,42 @@ export function WeatherWidget() {
         description: weatherInfo.description,
         humidity: weatherData.current.relative_humidity_2m,
         windSpeed: weatherData.current.wind_speed_10m,
-        visibility: 10, // Open-Meteo doesn't provide visibility, using default
-        icon: weatherInfo.icon,
+        visibility: 10,
+        weatherCode: weatherData.current.weather_code,
         precipitation: weatherData.current.precipitation || 0,
-        precipitationProbability: rainForecast[0]?.probability || 0,
-        rainForecast: rainForecast,
-        dailyForecast: dailyForecast,
         uvIndex: weatherData.current.uv_index || 0,
         pressure: weatherData.current.surface_pressure || 1013,
-        dewPoint: Math.round(weatherData.current.temperature_2m - ((100 - weatherData.current.relative_humidity_2m) / 5)) // Approximation
+        dewPoint: Math.round(weatherData.current.temperature_2m - ((100 - weatherData.current.relative_humidity_2m) / 5)),
+        feelsLike: Math.round(weatherData.current.apparent_temperature || weatherData.current.temperature_2m),
+        rainChance: rainForecast[0]?.probability || 0,
+        isRaining: (weatherData.current.precipitation || 0) > 0,
+        cloudCover: weatherData.current.cloud_cover || 0
       });
     } catch (err) {
       console.error('Weather API failed:', err);
-      setDemoWeatherData();
+      setWeather({
+        location: 'Lucknow, IN',
+        temperature: 28,
+        description: 'Clear sky',
+        humidity: 65,
+        windSpeed: 3.2,
+        visibility: 10,
+        weatherCode: 0,
+        precipitation: 0,
+        uvIndex: 5,
+        pressure: 1013,
+        dewPoint: 18,
+        feelsLike: 30,
+        rainChance: 0,
+        isRaining: false,
+        cloudCover: 20
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchWeatherByCity = async (city: string = 'Delhi') => {
+  const fetchWeatherByCity = async (city: string = 'Lucknow') => {
     try {
       // First get coordinates for the city using Open-Meteo geocoding
       const geocodingUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=en&format=json`;
@@ -262,7 +299,23 @@ export function WeatherWidget() {
       
       if (!geocodingResponse.ok) {
         console.log('Geocoding failed, using demo data');
-        setDemoWeatherData();
+        setWeather({
+          location: 'Lucknow, IN',
+          temperature: 28,
+          description: 'Clear sky',
+          humidity: 65,
+          windSpeed: 3.2,
+          visibility: 10,
+          weatherCode: 0,
+          precipitation: 0,
+          uvIndex: 5,
+          pressure: 1013,
+          dewPoint: 18,
+          feelsLike: 30,
+          rainChance: 0,
+          isRaining: false,
+          cloudCover: 20
+        });
         return;
       }
       
@@ -270,7 +323,23 @@ export function WeatherWidget() {
       
       if (!geocodingData.results || geocodingData.results.length === 0) {
         console.log('City not found, using demo data');
-        setDemoWeatherData();
+        setWeather({
+          location: 'Lucknow, IN',
+          temperature: 28,
+          description: 'Clear sky',
+          humidity: 65,
+          windSpeed: 3.2,
+          visibility: 10,
+          weatherCode: 0,
+          precipitation: 0,
+          uvIndex: 5,
+          pressure: 1013,
+          dewPoint: 18,
+          feelsLike: 30,
+          rainChance: 0,
+          isRaining: false,
+          cloudCover: 20
+        });
         return;
       }
       
@@ -281,7 +350,23 @@ export function WeatherWidget() {
       await fetchWeatherByCoords(latitude, longitude);
     } catch (err) {
       console.error('City weather API failed:', err);
-      setDemoWeatherData();
+      setWeather({
+        location: 'Lucknow, IN',
+        temperature: 28,
+        description: 'Clear sky',
+        humidity: 65,
+        windSpeed: 3.2,
+        visibility: 10,
+        weatherCode: 0,
+        precipitation: 0,
+        uvIndex: 5,
+        pressure: 1013,
+        dewPoint: 18,
+        feelsLike: 30,
+        rainChance: 0,
+        isRaining: false,
+        cloudCover: 20
+      });
     }
   };
 
@@ -296,13 +381,13 @@ export function WeatherWidget() {
         (error) => {
           console.log('Geolocation error:', error.code, error.message);
           if (error.code === 1) {
-            console.log('Geolocation permission denied, using Delhi as fallback');
+            console.log('Geolocation permission denied, using Lucknow as fallback');
           } else if (error.code === 2) {
-            console.log('Geolocation position unavailable, using Delhi as fallback');
+            console.log('Geolocation position unavailable, using Lucknow as fallback');
           } else if (error.code === 3) {
-            console.log('Geolocation timeout, using Delhi as fallback');
+            console.log('Geolocation timeout, using Lucknow as fallback');
           }
-          fetchWeatherByCity('Delhi');
+          fetchWeatherByCity('Lucknow');
         },
         {
           enableHighAccuracy: true,
@@ -311,8 +396,8 @@ export function WeatherWidget() {
         }
       );
     } else {
-      console.log('Geolocation not supported, using Delhi as fallback');
-      fetchWeatherByCity('Delhi');
+      console.log('Geolocation not supported, using Lucknow as fallback');
+      fetchWeatherByCity('Lucknow');
     }
   }, []);
 
@@ -354,7 +439,7 @@ export function WeatherWidget() {
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-medium text-green-800 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            {getWeatherIcon(weather.icon)}
+            {getWeatherIcon(weather.weatherCode)}
             <span>Advanced Weather System</span>
           </div>
           <button 

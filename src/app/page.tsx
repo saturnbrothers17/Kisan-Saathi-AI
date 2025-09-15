@@ -18,6 +18,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { CropPricesWidget } from '@/components/crop-prices-widget';
 import { FarmerDashboard } from '@/components/farmer-dashboard';
 import { CameraCapture } from '@/components/camera-capture';
+import { SmartLocationDetector } from '@/components/smart-location-detector';
 
 const AuthButton = dynamic(() => 
   import('@/components/auth-button').then(mod => mod.AuthButton), 
@@ -359,13 +360,13 @@ function Home() {
                       <CameraCapture onCapture={handleCameraCapture} />
                     </TabsContent>
                     <TabsContent value="location" className="mt-4">
-                      <div className="space-y-4">
-                        <div className="text-center p-4 bg-green-50 border border-green-200 rounded-lg">
-                          <p className="text-sm text-green-700">
-                            Location is automatically set when you first visit the app. 
-                            Your current location will be used for weather and crop price data.
-                          </p>
-                        </div>
+                      <div className="space-y-6">
+                        <SmartLocationDetector 
+                          onLocationDetected={(location) => {
+                            console.log('Location detected:', location);
+                            // You can handle the detected location here
+                          }}
+                        />
                       </div>
                     </TabsContent>
                   </Tabs>
