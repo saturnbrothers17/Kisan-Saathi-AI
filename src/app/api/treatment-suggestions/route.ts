@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { suggestTreatment } from '@/ai/flows/treatment-suggestions';
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,13 +12,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = await suggestTreatment({ 
-      diseaseName, 
-      confidenceLevel: confidencePercentage / 100,
-      imageUri: '' // Will be passed from frontend if needed
-    });
-    
-    return NextResponse.json(result);
+    // Import and call the AI flow with error handling
+    try {
+      const { suggestTreatment } = await import('@/ai/flows/treatment-suggestions');
+      console.log('Treatment suggestion function imported successfully');
+      const result = await suggestTreatment({ 
+        diseaseName, 
+        confidenceLevel: confidencePercentage / 100,
+        imageUri: '' // Will be passed from frontend if needed
+      });
+      console.log('Treatment suggestion result:', result);
+      return NextResponse.json(result);
+    } catch (importError) {
+      console.error('Import or execution error:', importError);
+      throw new Error(`AI flow error: ${importError instanceof Error ? importError.message : 'Unknown import error'}`);
+    }
   } catch (error) {
     console.error('Treatment suggestion error:', error);
     return NextResponse.json(
