@@ -38,7 +38,13 @@ export function AuthButton() {
     const provider = new GoogleAuthProvider();
     try {
       await signInWithPopup(auth, provider);
-    } catch (error) {
+    } catch (error: any) {
+      // Handle popup closed by user - this is normal behavior, don't show error
+      if (error.code === 'auth/popup-closed-by-user') {
+        console.log("Sign-in popup was closed by user");
+        return;
+      }
+      
       console.error("Error signing in with Google", error);
       toast({
         variant: 'destructive',

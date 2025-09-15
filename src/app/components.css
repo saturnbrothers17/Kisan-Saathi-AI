@@ -1,0 +1,17 @@
+/* This file is for custom component styles that are not covered by Tailwind CSS utilities. */
+
+.monsoon-progress-bar {
+  transition: width 0.5s ease-in-out;
+}
+
+.forecast-probability-bar {
+  transition: width 0.5s ease-in-out;
+}
+
+.vegetation-index-bar {
+  transition: width 0.5s ease-in-out;
+}
+
+.health-score-bar {
+  transition: width 0.5s ease-in-out;
+}
