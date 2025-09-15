@@ -102,10 +102,10 @@ export function SmartLocationDetector({ onLocationDetected, autoDetect = true }:
 
         // Add instructions for user to improve GPS accuracy
         if (attempts === 1) {
-          console.log('📍 For best GPS accuracy:');
-          console.log('   • Move near a window or go outdoors');
-          console.log('   • Ensure location services are enabled');
-          console.log('   • Wait for GPS to get satellite lock');
+          console.log('📍 Browser GPS Issue Detected:');
+          console.log('   • Browser is using network location (ISP routing through Delhi)');
+          console.log('   • GPS coordinates may show ISP server location instead of actual position');
+          console.log('   • For true GPS: Use mobile device GPS app or enable device location services');
         }
 
         navigator.geolocation.getCurrentPosition(
@@ -120,63 +120,41 @@ export function SmartLocationDetector({ onLocationDetected, autoDetect = true }:
               console.log(`🎯 New best accuracy: ${accuracy}m`);
             }
 
-            // Accept if accuracy is within browser GPS range (100m - 1km)
-            if (accuracy >= 100 && accuracy <= 1000) {
-              console.log(`✅ Good browser GPS accuracy achieved: ${accuracy}m`);
-              
-              const locationDetails = await reverseGeocode(latitude, longitude);
-              if (locationDetails) {
-                resolve({
-                  ...locationDetails,
-                  lat: latitude,
-                  lon: longitude,
-                  source: 'GPS',
-                  accuracy: accuracy,
-                  timestamp: Date.now()
-                });
+            // Check if coordinates are Delhi ISP location (network-based positioning)
+            const isDelhiISP = (latitude >= 28.4 && latitude <= 28.8 && longitude >= 76.8 && longitude <= 77.5);
+            
+            if (isDelhiISP) {
+              console.log(`⚠️ Detected Delhi ISP location: ${latitude}, ${longitude} - likely network positioning`);
+              if (attempts < maxAttempts) {
+                console.log(`🔄 Retrying to get actual GPS coordinates...`);
+                setTimeout(attemptHighAccuracyLocation, 3000);
+                return;
+              } else {
+                console.log(`❌ All attempts returned Delhi ISP location - browser using network positioning`);
+                resolve(null);
                 return;
               }
             }
-
-            // Accept excellent accuracy immediately (better than expected)
-            if (accuracy < 100) {
-              console.log(`✅ Excellent GPS accuracy achieved: ${accuracy}m`);
-              
-              const locationDetails = await reverseGeocode(latitude, longitude);
-              if (locationDetails) {
-                resolve({
-                  ...locationDetails,
-                  lat: latitude,
-                  lon: longitude,
-                  source: 'GPS',
-                  accuracy: accuracy,
-                  timestamp: Date.now()
-                });
-                return;
-              }
-            }
-
-            // Continue trying if accuracy is outside acceptable range
-            if (attempts < maxAttempts) {
-              console.log(`⚠️ GPS accuracy: ${accuracy}m (target: 100m-1km), trying again...`);
-              setTimeout(attemptHighAccuracyLocation, 3000);
+            
+            // Accept non-Delhi coordinates as likely accurate
+            console.log(`✅ GPS coordinates obtained: ${latitude}, ${longitude} (accuracy: ${accuracy}m)`);
+            
+            const locationDetails = await reverseGeocode(latitude, longitude);
+            if (locationDetails) {
+              resolve({
+                ...locationDetails,
+                lat: latitude,
+                lon: longitude,
+                source: 'GPS',
+                accuracy: accuracy,
+                timestamp: Date.now()
+              });
               return;
-            }
-
-            // Use best reading if we've exhausted attempts and it's reasonable
-            if (bestReading && bestReading.accuracy <= 2000) {
-              console.log(`📍 Using best available reading: ${bestReading.accuracy}m accuracy`);
-              
-              const locationDetails = await reverseGeocode(bestReading.latitude, bestReading.longitude);
-              if (locationDetails) {
-                resolve({
-                  ...locationDetails,
-                  lat: bestReading.latitude,
-                  lon: bestReading.longitude,
-                  source: 'GPS',
-                  accuracy: bestReading.accuracy,
-                  timestamp: Date.now()
-                });
+            } else {
+              // Retry reverse geocoding if it fails
+              if (attempts < maxAttempts) {
+                console.log(`⚠️ Reverse geocoding failed, retrying...`);
+                setTimeout(attemptHighAccuracyLocation, 2000);
                 return;
               }
             }
@@ -422,9 +400,9 @@ export function SmartLocationDetector({ onLocationDetected, autoDetect = true }:
           </div>
         )}
         
-        {/* Browser GPS Accuracy Info */}
-        <div className="text-xs text-blue-600 text-center bg-blue-50 p-2 rounded border border-blue-200">
-          📍 Target GPS Accuracy: 100m - 1km (typical browser GPS range)
+        {/* Browser GPS Info */}
+        <div className="text-xs text-orange-600 text-center bg-orange-50 p-2 rounded border border-orange-200">
+          ⚠️ Browser GPS uses network location (ISP servers) - may show Delhi instead of actual location
         </div>
       </CardContent>
     </Card>
