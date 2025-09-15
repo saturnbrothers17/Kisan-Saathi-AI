@@ -85,18 +85,28 @@ export function SmartLocationDetector({ onLocationDetected, autoDetect = true }:
     }
 
     return new Promise((resolve) => {
-      const options = {
-        enableHighAccuracy: true,
-        timeout: 30000, // Increased timeout to 30 seconds
-        maximumAge: 0 // Always get fresh location
-      };
-
       let attempts = 0;
-      const maxAttempts = 3;
+      const maxAttempts = 5;
+      let bestReading: any = null;
 
-      const attemptLocation = () => {
+      const attemptHighAccuracyLocation = () => {
         attempts++;
-        console.log(`📍 GPS attempt ${attempts}/${maxAttempts}`);
+        console.log(`📍 High-accuracy GPS attempt ${attempts}/${maxAttempts}`);
+
+        // Progressive options for better accuracy
+        const options = {
+          enableHighAccuracy: true,
+          timeout: attempts === 1 ? 15000 : 60000, // Much longer timeout for GPS lock
+          maximumAge: 0 // Always get fresh location
+        };
+
+        // Add instructions for user to improve GPS accuracy
+        if (attempts === 1) {
+          console.log('📍 For best GPS accuracy:');
+          console.log('   • Move near a window or go outdoors');
+          console.log('   • Ensure location services are enabled');
+          console.log('   • Wait for GPS to get satellite lock');
+        }
 
         navigator.geolocation.getCurrentPosition(
           async (position) => {
@@ -104,41 +114,75 @@ export function SmartLocationDetector({ onLocationDetected, autoDetect = true }:
             
             console.log(`📍 GPS coordinates: ${latitude}, ${longitude} (accuracy: ${accuracy}m)`);
             
-            // Accept accuracy up to 100m for better success rate
-            if (accuracy > 100) {
-              console.log(`⚠️ GPS accuracy: ${accuracy}m, trying again...`);
-              if (attempts < maxAttempts) {
-                setTimeout(attemptLocation, 2000); // Wait 2 seconds before retry
-                return;
-              } else {
-                console.log(`❌ GPS accuracy still poor after ${maxAttempts} attempts: ${accuracy}m`);
-                resolve(null);
+            // Track best reading so far
+            if (!bestReading || accuracy < bestReading.accuracy) {
+              bestReading = { latitude, longitude, accuracy };
+              console.log(`🎯 New best accuracy: ${accuracy}m`);
+            }
+
+            // Accept if accuracy is within browser GPS range (100m - 1km)
+            if (accuracy >= 100 && accuracy <= 1000) {
+              console.log(`✅ Good browser GPS accuracy achieved: ${accuracy}m`);
+              
+              const locationDetails = await reverseGeocode(latitude, longitude);
+              if (locationDetails) {
+                resolve({
+                  ...locationDetails,
+                  lat: latitude,
+                  lon: longitude,
+                  source: 'GPS',
+                  accuracy: accuracy,
+                  timestamp: Date.now()
+                });
                 return;
               }
             }
 
-            // Try reverse geocoding to get location details
-            const locationDetails = await reverseGeocode(latitude, longitude);
-            
-            if (locationDetails) {
-              console.log(`✅ GPS location found: ${locationDetails.city}, ${locationDetails.state}`);
-              resolve({
-                ...locationDetails,
-                lat: latitude,
-                lon: longitude,
-                source: 'GPS',
-                accuracy: accuracy,
-                timestamp: Date.now()
-              });
-            } else {
-              console.log('❌ GPS reverse geocoding failed, trying again...');
-              if (attempts < maxAttempts) {
-                setTimeout(attemptLocation, 2000);
+            // Accept excellent accuracy immediately (better than expected)
+            if (accuracy < 100) {
+              console.log(`✅ Excellent GPS accuracy achieved: ${accuracy}m`);
+              
+              const locationDetails = await reverseGeocode(latitude, longitude);
+              if (locationDetails) {
+                resolve({
+                  ...locationDetails,
+                  lat: latitude,
+                  lon: longitude,
+                  source: 'GPS',
+                  accuracy: accuracy,
+                  timestamp: Date.now()
+                });
                 return;
-              } else {
-                resolve(null);
               }
             }
+
+            // Continue trying if accuracy is outside acceptable range
+            if (attempts < maxAttempts) {
+              console.log(`⚠️ GPS accuracy: ${accuracy}m (target: 100m-1km), trying again...`);
+              setTimeout(attemptHighAccuracyLocation, 3000);
+              return;
+            }
+
+            // Use best reading if we've exhausted attempts and it's reasonable
+            if (bestReading && bestReading.accuracy <= 2000) {
+              console.log(`📍 Using best available reading: ${bestReading.accuracy}m accuracy`);
+              
+              const locationDetails = await reverseGeocode(bestReading.latitude, bestReading.longitude);
+              if (locationDetails) {
+                resolve({
+                  ...locationDetails,
+                  lat: bestReading.latitude,
+                  lon: bestReading.longitude,
+                  source: 'GPS',
+                  accuracy: bestReading.accuracy,
+                  timestamp: Date.now()
+                });
+                return;
+              }
+            }
+
+            console.log('❌ Could not achieve acceptable GPS accuracy');
+            resolve(null);
           },
           (error) => {
             console.error(`GPS error (attempt ${attempts}):`, {
@@ -160,7 +204,7 @@ export function SmartLocationDetector({ onLocationDetected, autoDetect = true }:
             
             if (attempts < maxAttempts && error.code !== 1) { // Don't retry if permission denied
               console.log('🔄 Retrying GPS in 3 seconds...');
-              setTimeout(attemptLocation, 3000);
+              setTimeout(attemptHighAccuracyLocation, 3000);
             } else {
               console.log('❌ GPS failed after all attempts');
               resolve(null);
@@ -170,7 +214,7 @@ export function SmartLocationDetector({ onLocationDetected, autoDetect = true }:
         );
       };
 
-      attemptLocation();
+      attemptHighAccuracyLocation();
     });
   };
 
@@ -377,6 +421,11 @@ export function SmartLocationDetector({ onLocationDetected, autoDetect = true }:
             ⚠️ {error}
           </div>
         )}
+        
+        {/* Browser GPS Accuracy Info */}
+        <div className="text-xs text-blue-600 text-center bg-blue-50 p-2 rounded border border-blue-200">
+          📍 Target GPS Accuracy: 100m - 1km (typical browser GPS range)
+        </div>
       </CardContent>
     </Card>
   );
