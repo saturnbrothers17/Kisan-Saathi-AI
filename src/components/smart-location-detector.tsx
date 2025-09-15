@@ -77,6 +77,7 @@ export function SmartLocationDetector({ onLocationDetected, autoDetect = true }:
       
       if (permission.state === 'denied') {
         console.log('❌ Geolocation permission denied');
+        setError('Location access denied. Please allow location access in your browser settings and refresh the page.');
         return null;
       }
     } catch (e) {
@@ -140,9 +141,24 @@ export function SmartLocationDetector({ onLocationDetected, autoDetect = true }:
             }
           },
           (error) => {
-            console.error(`GPS error (attempt ${attempts}):`, error.message);
+            console.error(`GPS error (attempt ${attempts}):`, {
+              code: error.code,
+              message: error.message,
+              PERMISSION_DENIED: error.code === 1,
+              POSITION_UNAVAILABLE: error.code === 2,
+              TIMEOUT: error.code === 3
+            });
             
-            if (attempts < maxAttempts) {
+            // Set specific error message based on error code
+            if (error.code === 1) {
+              setError('Location access denied. Please allow location access in your browser settings.');
+            } else if (error.code === 2) {
+              setError('Location unavailable. Please ensure GPS is enabled and you have a clear view of the sky.');
+            } else if (error.code === 3) {
+              setError('Location request timed out. Please ensure GPS is enabled and try again.');
+            }
+            
+            if (attempts < maxAttempts && error.code !== 1) { // Don't retry if permission denied
               console.log('🔄 Retrying GPS in 3 seconds...');
               setTimeout(attemptLocation, 3000);
             } else {
@@ -357,8 +373,8 @@ export function SmartLocationDetector({ onLocationDetected, autoDetect = true }:
 
         {/* GPS Guidance */}
         {error && (
-          <div className="text-xs text-blue-600 text-center bg-blue-50 p-2 rounded">
-            💡 Allow location access and ensure GPS is enabled for accurate detection
+          <div className="text-xs text-red-600 text-center bg-red-50 p-2 rounded border border-red-200">
+            ⚠️ {error}
           </div>
         )}
       </CardContent>
