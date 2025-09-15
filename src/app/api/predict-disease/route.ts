@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { predictDisease } from '@/ai/flows/disease-prediction';
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,13 +12,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if required environment variables exist
+    if (!process.env.GEMINI_API_KEY) {
+      console.error('GEMINI_API_KEY not found in environment variables');
+      return NextResponse.json(
+        { error: 'Server configuration error: Missing API key' },
+        { status: 500 }
+      );
+    }
+
+    // Import and call the AI flow
+    const { predictDisease } = await import('@/ai/flows/disease-prediction');
     const result = await predictDisease({ photoDataUri });
     
     return NextResponse.json(result);
   } catch (error) {
     console.error('Disease prediction error:', error);
     return NextResponse.json(
-      { error: 'Failed to analyze the image. Please try again.' },
+      { 
+        error: 'Failed to analyze the image. Please try again.',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     );
   }
