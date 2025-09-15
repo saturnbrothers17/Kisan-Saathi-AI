@@ -79,24 +79,47 @@ export async function POST(request: NextRequest) {
   try {
     const { photoDataUri } = await request.json();
     
-    // Test the disease prediction API directly
-    const response = await fetch(`${process.env.VERCEL_URL || 'http://localhost:3000'}/api/predict-disease`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
+    // Test direct Genkit usage instead of calling the API
+    const { z } = await import('zod');
+    const { ai } = await import('@/ai/genkit');
+    
+    console.log('Testing direct Genkit execution...');
+    
+    const InputSchema = z.object({
+      photoDataUri: z.string().describe('A photo of a plant as a data URI'),
+    });
+    
+    const OutputSchema = z.object({
+      isHealthy: z.boolean().describe('Whether the plant is healthy'),
+      commonName: z.string().describe('Disease name or "Healthy"'),
+      confidencePercentage: z.number().describe('Confidence 0-100'),
+    });
+    
+    const testPrompt = ai.definePrompt(
+      {
+        name: 'directTestPrompt',
+        input: { schema: InputSchema },
+        output: { schema: OutputSchema },
       },
-      body: JSON.stringify({ photoDataUri })
-    });
+      `Analyze this plant image: {{media url=photoDataUri}}
+      
+      Determine if healthy or diseased and return appropriate values.`
+    );
     
-    const data = await response.json();
+    console.log('Executing direct prompt...');
+    const { output } = await testPrompt({ photoDataUri });
     
     return NextResponse.json({
-      status: response.status,
-      data: data
+      success: true,
+      directTest: true,
+      result: output,
+      message: 'Direct Genkit execution successful'
     });
+    
   } catch (error) {
+    console.error('Direct test error:', error);
     return NextResponse.json({
-      error: 'Test failed',
+      error: 'Direct test failed',
       message: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined
     }, { status: 500 });
